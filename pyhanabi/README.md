@@ -94,3 +94,29 @@ Subsequent levels can be trained the same way.
 
 
 ### Evaluation
+
+Run the following command to evaluate a trained model, such as those provided with the repo.
+```
+python tools/eval_model.py --weight1 ../models/icml_OBL1/OFF_BELIEF1_SHUFFLE_COLOR0_BZA0_BELIEF_a/model0.pthw
+```
+
+To compute the cross play score of independely trained models with different seeds:
+```shell
+python tools/cross_play.py --root ../models/icml_OBL1/ --include BZA0 --num_player 2
+```
+
+The final lines of the output are:
+```
+#model: 1, #groups 5, score: 20.92 +/- 0.08
+#model: 2, #groups 10, score: 20.90 +/- 0.04
+```
+The first line means there are 5 groups with 1 model (i.e. selfplay)
+and the second line means that there are 10 (5 choose 2) groups of 2
+model (crossplay).
+
+
+### SPARTA
+
+```shell
+python sparta.py --weight_file PATH_TO_MODEL.pthw
+```

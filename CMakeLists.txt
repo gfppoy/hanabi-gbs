@@ -14,8 +14,10 @@ find_package(Torch REQUIRED)
 pybind11_add_module(
   hanalearn
   ${CMAKE_CURRENT_SOURCE_DIR}/rlcc/utils.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/rlcc/clone_data_generator.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/rlcc/r2d2_actor.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/rlcc/hand_dist.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/rlcc/hybrid_model.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/rlcc/sparta.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/rlcc/pybind.cc
 )
 target_link_libraries(hanalearn PUBLIC hanabi)

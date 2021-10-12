@@ -13,9 +13,10 @@
 #include "hanabi-learning-environment/hanabi_lib/hanabi_move.h"
 #include "hanabi-learning-environment/hanabi_lib/hanabi_observation.h"
 
-#include "rlcc/clone_data_generator.h"
 #include "rlcc/hanabi_env.h"
 #include "rlcc/thread_loop.h"
+#include "rlcc/r2d2_actor.h"
+#include "rlcc/sparta.h"
 
 namespace py = pybind11;
 using namespace hanabi_learning_env;
@@ -46,20 +47,6 @@ PYBIND11_MODULE(hanalearn, m) {
       .def("get_last_action", &HanabiEnv::getLastAction)
       .def("get_step", &HanabiEnv::numStep)
       .def("set_color_reward", &HanabiEnv::setColorReward);
-
-  py::class_<CloneDataGenerator, std::shared_ptr<CloneDataGenerator>>(
-      m, "CloneDataGenerator")
-      .def(py::init<
-           std::shared_ptr<rela::RNNPrioritizedReplay>,
-           int,
-           int,
-           bool,
-           bool,
-           int>())
-      .def("set_game_params", &CloneDataGenerator::setGameParams)
-      .def("add_game", &CloneDataGenerator::addGame)
-      .def("start_data_generation", &CloneDataGenerator::startDataGeneration)
-      .def("terminate", &CloneDataGenerator::terminate);
 
   py::class_<R2D2Actor, std::shared_ptr<R2D2Actor>>(m, "R2D2Actor")
       .def(py::init<
@@ -289,4 +276,21 @@ PYBIND11_MODULE(hanalearn, m) {
       .def(py::init<const HanabiGame*>())
       .def("shape", &CanonicalObservationEncoder::Shape)
       .def("encode", &CanonicalObservationEncoder::Encode);
+
+  py::class_<approx_search::GameSimulator, std::shared_ptr<approx_search::GameSimulator>>(
+      m, "GameSimulator")
+      .def(py::init<const std::unordered_map<std::string, std::string>&>())
+      .def("step", &approx_search::GameSimulator::step)
+      .def("get_move", &approx_search::GameSimulator::getMove)
+      .def("state", &approx_search::GameSimulator::state)
+      .def("terminal", &approx_search::GameSimulator::terminal)
+      .def("get_score", &approx_search::GameSimulator::score);
+
+  py::class_<sparta::SpartaActor, std::shared_ptr<sparta::SpartaActor>>(m, "SpartaActor")
+      .def(py::init<int, std::shared_ptr<rela::BatchRunner>, int>())
+      .def("set_partners", &sparta::SpartaActor::setPartners)
+      .def("update_belief", &sparta::SpartaActor::updateBelief)
+      .def("observe", &sparta::SpartaActor::observe)
+      .def("decide_action", &sparta::SpartaActor::decideAction)
+      .def("sparta_search", &sparta::SpartaActor::spartaSearch);
 }

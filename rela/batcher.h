@@ -20,7 +20,6 @@ inline TensorDict allocateBatchStorage(const TensorDict& data, int size) {
     for (size_t i = 0; i < t.size(); ++i) {
       sizes.push_back(t[i]);
     }
-
     storage[kv.first] = torch::zeros(sizes, kv.second.dtype());
   }
   return storage;

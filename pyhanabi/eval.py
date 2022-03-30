@@ -102,7 +102,25 @@ def evaluate_saved_model(
     for weight_file in weight_files:
         state_dict = torch.load(weight_file)
         if "fc_v.weight" in state_dict.keys():
-            agent, cfg = utils.load_agent(weight_file, overwrite)
+            # agent, cfg = utils.load_agent(weight_file, overwrite)
+
+            agent = r2d2.R2D2Agent(
+                False, # vdn
+                3, # multi step
+                0.99, # gamma
+                0.9, # eta
+                "cuda:0", # device
+                783, # feature size
+                512, # rnn hidden dim
+                21, # out dim
+                "publ-lstm", # net
+                2, # num lstm layer
+                False, # boltzmann act
+                False,  # uniform priority
+                False, # off belief
+            )
+            utils.load_weight(agent.online_net, weight_file, "cuda:0")
+
             agents.append(agent)
             sad.append(cfg["sad"] if "sad" in cfg else cfg["greedy_extra"])
             hide_action.append(bool(cfg["hide_action"]))

@@ -289,8 +289,11 @@ PYBIND11_MODULE(hanalearn, m) {
   py::class_<sparta::SpartaActor, std::shared_ptr<sparta::SpartaActor>>(m, "SpartaActor")
       .def(py::init<int, std::shared_ptr<rela::BatchRunner>, int>())
       .def("set_partners", &sparta::SpartaActor::setPartners)
+      .def("change_bp", &sparta::SpartaActor::changeBp)
+      .def("change_bp_py", &sparta::SpartaActor::changeBpPy)
       .def("update_belief", &sparta::SpartaActor::updateBelief)
       .def("observe", &sparta::SpartaActor::observe)
+      .def("observeGeneralizedBelief", &sparta::SpartaActor::observeGeneralizedBelief)
       .def("decide_action", &sparta::SpartaActor::decideAction)
       .def("sparta_search", &sparta::SpartaActor::spartaSearch);
 }

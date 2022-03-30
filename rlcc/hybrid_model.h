@@ -76,6 +76,10 @@ class HybridModel {
   void observeBeforeAct(
       const GameSimulator& env, float eps, rela::TensorDict* retFeat = nullptr);
 
+  // observe before act for GBS
+  std::vector<torch::Tensor> observeBeforeActGeneralizedBelief(
+      const GameSimulator& env, float eps, std::vector<torch::Tensor> aoh, torch::Tensor seq_len, rela::TensorDict* retFeat = nullptr);
+
   int decideAction(
       const GameSimulator& env, bool verbose, rela::TensorDict* retAction = nullptr);
 
@@ -102,6 +106,14 @@ class HybridModel {
 
   void setRlHid(const rela::TensorDict& rlHid) {
     rlHid_ = rlHid;
+  }
+
+  void setBpModelPy(py::object pyModel) {
+    bpModel_->updateModel(pyModel);
+  }
+
+  void setRlModelPy(py::object pyModel) {
+    rlModel_->updateModel(pyModel);
   }
 
   const bool hideAction = false;

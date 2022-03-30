@@ -3,10 +3,12 @@
 #include "rlcc/game_sim.h"
 #include "rlcc/hybrid_model.h"
 #include "rlcc/hand_dist.h"
+#include "rela/tensor_dict.h"
 
 namespace sparta {
 
 class SpartaActor {
+
  public:
   SpartaActor(
       int index,
@@ -20,34 +22,100 @@ class SpartaActor {
     model_.setBpModel(bpRunner, getH0(*bpRunner, 1));
   }
 
-  void setPartners(std::vector<std::shared_ptr<SpartaActor>> partners) {
+  void setPartners(std::vector<std::shared_ptr<SpartaActor>> partners, py::object pyModel) {
     partners_ = std::move(partners);
+ //   partners_[0]->model_.setBpModelPy(pyModel);
   }
 
-  void updateBelief(const approx_search::GameSimulator& env, int numThread) {
+  void changeBpPy(py::object pyModel) {
+    model_.setBpModelPy(pyModel);
+  }
+
+  void changeBp(std::shared_ptr<rela::BatchRunner> bpRunner) {
+	model_.setBpModel(bpRunner, getH0(*bpRunner, 1));
+  }
+
+  // void updateBelief(const approx_search::GameSimulator& env, int numThread) {
+  //   assert(callOrder_ == 0);
+  //   ++callOrder_;
+
+  //   const auto& state = env.state();
+  //   int curPlayer = state.CurPlayer();
+  //   int numPlayer = env.game().NumPlayers();
+  //   assert((int)partners_.size() == numPlayer);
+  //   int prevPlayer = (curPlayer - 1 + numPlayer) % numPlayer;
+  //   std::cout << "prev player: " << prevPlayer << std::endl;
+
+  //   auto [obs, lastMove, cardCount, myHand] =
+  //       observeForSearch(env.state(), index, hideAction, false);
+
+  //   approx_search::updateBelief(
+  //       prevState_,
+  //       env.game(),
+  //       lastMove,
+  //       cardCount,
+  //       myHand,
+  //       partners_[prevPlayer]->prevModel_,
+  //       index,
+  //       handDist_,
+  //       numThread);
+  // }
+
+  std::tuple<rela::TensorDict, std::vector<int>> updateBelief(const approx_search::GameSimulator& env, int numThread) {
     assert(callOrder_ == 0);
     ++callOrder_;
 
     const auto& state = env.state();
     int curPlayer = state.CurPlayer();
     int numPlayer = env.game().NumPlayers();
-    assert((int)partners_.size() == numPlayer);
+    //assert((int)partners_.size() == numPlayer);
     int prevPlayer = (curPlayer - 1 + numPlayer) % numPlayer;
     std::cout << "prev player: " << prevPlayer << std::endl;
 
-    auto [obs, lastMove, cardCount, myHand] =
+    auto [obss, lastMove, cardCount, myHand] =
         observeForSearch(env.state(), index, hideAction, false);
+   // approx_search::updateBelief(
+   //   prevState_,
+   //   env.game(),
+   //   lastMove,
+   //   cardCount,
+   //   myHand,
+   //   partners_[prevPlayer]->prevModel_,
+   //   index,
+   //   handDist_,
+   //   numThread);
 
-    approx_search::updateBelief(
-        prevState_,
-        env.game(),
-        lastMove,
-        cardCount,
-        myHand,
-        partners_[prevPlayer]->prevModel_,
-        index,
-        handDist_,
-        numThread);
+    bool shuffleColor = false;
+    const std::vector<int>& colorPermute = std::vector<int>();
+    const std::vector<int>& invColorPermute = std::vector<int>();
+    bool trinary = true;
+    bool sad = true;
+
+    const auto& game = *(env.state().ParentGame());
+    auto obs = hle::HanabiObservation(env.state(), index, true);
+    auto encoder = hle::CanonicalObservationEncoder(&game);
+
+    std::vector<float> vS = encoder.Encode(
+      obs,
+      true,  // regardless of the flag, splitPrivatePulic/convertSad will mask out this
+             // field
+      std::vector<int>(),  // shuffle card
+      shuffleColor,
+      colorPermute,
+      invColorPermute,
+      hideAction);
+
+    rela::TensorDict feat;
+    if (!sad) {
+      feat = splitPrivatePublic(vS, game);
+    } else {
+      // only for evaluation
+      auto vA =
+          encoder.EncodeLastAction(obs, std::vector<int>(), shuffleColor, colorPermute);
+      feat = convertSad(vS, vA, game);
+    }
+
+    return {feat, cardCount};//observe(env.state(), index, false, std::vector<int>(), std::vector<int>(), hideAction, true, true);
   }
 
   void observe(const approx_search::GameSimulator& env) {
@@ -56,6 +124,20 @@ class SpartaActor {
 
     const auto& state = env.state();
     model_.observeBeforeAct(env, 0);
+
+    if (prevState_ == nullptr) {
+      prevState_ = std::make_unique<hle::HanabiState>(state);
+    } else {
+      *prevState_ = state;
+    }
+  }
+
+  void observeGeneralizedBelief(const approx_search::GameSimulator& env, std::vector<torch::Tensor> aoh, torch::Tensor seq_len) {
+    // assert(callOrder_ == 1);
+    ++callOrder_;
+
+    const auto& state = env.state();
+    model_.observeBeforeActGeneralizedBelief(env, 0, aoh, seq_len);
 
     if (prevState_ == nullptr) {
       prevState_ = std::make_unique<hle::HanabiState>(state);
@@ -77,7 +159,16 @@ class SpartaActor {
       const approx_search::GameSimulator& env,
       hle::HanabiMove bpMove,
       int numSearch,
-      float threshold);
+      float threshold,
+      std::vector<int> cardCount,
+      std::vector<torch::Tensor> aoh,
+      torch::Tensor seq_len,
+      std::vector<int> player_each_rollout,
+      std::vector<int> samples1,
+      std::vector<int> samples2,
+      std::vector<int> samples3,
+      std::vector<int> samples4,
+      std::vector<int> samples5);
 
   const int index;
   const bool hideAction = false;

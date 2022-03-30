@@ -110,17 +110,31 @@ class LegacyAgent(torch.jit.ScriptModule):
             [batchsize] or [batchsize, num_player]
         """
         s = obs["s"]
+        # s = obs["priv_s"]
+
         legal_move = obs["legal_move"]
-        eps = obs["eps"].flatten(0, 1)
+
+        if "eps" in obs:
+            eps = obs["eps"].flatten(0, 1)
+        else:
+            eps = torch.zeros((s.size(0),), device=s.device)
+
+        # eps = obs["eps"].flatten(0, 1)
+
 
         vdn = s.dim() == 3
 
         if vdn:
             bsize, num_player = obs["s"].size()[:2]
+            # bsize, num_player = obs["priv_s"].size()[:2]
+
             s = obs["s"].flatten(0, 1)
+            # s = obs["priv_s"].flatten(0, 1)
+
             legal_move = obs["legal_move"].flatten(0, 1)
         else:
             bsize, num_player = obs["s"].size()[0], 1
+            # bsize, num_player = obs["priv_s"].size()[0], 1
 
         # hid size: [batch, num_layer, num_player, dim]
         # -> [num_layer, batch x num_player, dim]
@@ -180,10 +194,11 @@ def load_legacy_agent(weight_file):
         in_dim,
         hid_dim,
         out_dim,
-        config["num_ff_layer"],
-        config["skip_connect"],
+        1,#config["num_ff_layer"],
+        False,#config["skip_connect"],
     )
-    agent.online_net.load_state_dict(state_dict)
+    # agent.online_net.load_state_dict(state_dict)
+    utils.load_weight(agent.online_net, weight_file, "cuda:0", state_dict=state_dict)
     return (
         agent,
         {

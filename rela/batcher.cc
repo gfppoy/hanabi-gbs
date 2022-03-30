@@ -65,7 +65,6 @@ Batcher::Batcher(int batchsize)
 // send data into batcher
 FutureReply Batcher::send(const TensorDict& t) {
   std::unique_lock<std::mutex> lk(mNextSlot_);
-
   // init buffer
   if (fillingBuffer_.empty()) {
     assert(filledBuffer_.empty());
@@ -89,7 +88,6 @@ FutureReply Batcher::send(const TensorDict& t) {
   ++nextSlot_;
   ++numActiveWrite_;
   lk.unlock();
-
   // this will copy
   for (const auto& kv : t) {
     if (fillingBuffer_[kv.first][slot].sizes() != kv.second.sizes()) {
@@ -138,7 +136,6 @@ TensorDict Batcher::get() {
   for (const auto& kv : filledBuffer_) {
     batch[kv.first] = kv.second.narrow(0, 0, bsize).contiguous();
   }
-
   return batch;
 }
 

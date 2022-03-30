@@ -548,6 +548,7 @@ int EncodeV0Belief_(const HanabiGame& game,
   assert(per_card_offset == num_colors * num_ranks + num_colors + num_ranks);
 
   auto ref_encoding = *encoding;
+
   const std::vector<HanabiHand>& hands = obs.Hands();
   for (int player_id = 0; player_id < num_players; ++player_id) {
     int num_cards = hands[player_id].Cards().size();

@@ -43,8 +43,8 @@ inline rela::TensorDict convertSad(
   std::fill(vPriv.begin(), vPriv.begin() + bitsPerHand, 0);
   vPriv.insert(vPriv.end(), sad.begin(), sad.end());
   auto ret = splitPrivatePublic(vPriv, game);
-  // // for compatibility with legacy model
-  // ret["s"] = torch::tensor(vPriv);
+  // for compatibility with legacy model
+  ret["s"] = torch::tensor(vPriv);
   return ret;
 }
 

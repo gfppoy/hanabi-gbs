@@ -26,7 +26,7 @@ import utils
 def parse_args():
     parser = argparse.ArgumentParser(description="train dqn on hanabi")
     parser.add_argument("--save_dir", type=str, default="exps/exp1")
-    parser.add_argument("--method", type=str, default="vdn")
+    parser.add_argument("--method", type=str, default="iql")
     parser.add_argument("--shuffle_color", type=int, default=0)
     parser.add_argument("--aux_weight", type=float, default=0)
     parser.add_argument("--boltzmann_act", type=int, default=0)

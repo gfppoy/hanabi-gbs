@@ -1,4 +1,5 @@
-# Off-Belief Learning
+# Generalized Belief Search
+This repo is largely based off of https://github.com/facebookresearch/off-belief-learning with some modifications. The code is set up to run search over 6 policies whilst randomly matching the best response with a random policy for cross-play, and may be run via `python pyhanabi/sparta.py --weight_file PATH_TO_BEST_RESPONSE`. Change `line 42` in `pyhanabi/sparta.py` to modify the belief used for search. Changes `line 208` and `211-216` in `pyhanabi/sparta.py` to modify the pool of policies used for cross-play and search. Change `lines 109 and 200` in `pyhanabi/sparta.py` and `line 126` in `rlcc/sparta.cc` to change between a best response trained with a belief hidden state and a best response trained without a belief hidden state.
 
 ## Introduction
 

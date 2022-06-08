@@ -73,12 +73,6 @@ def run(
 
         cur_player = game.state().cur_player()
 
-     #   if cur_player != search_actor_idx:
-     #       actors[cur_player].change_bp_py(bps[cur_player])
-     #   else:
-     #       actors[1-cur_player].change_bp_py(bps[search_actor_idx])
-    
-     #   actors[search_actor_idx].update_belief(game, num_thread)
         obs, cardCount = actors[search_actor_idx].update_belief(game, num_thread)
         src = belief.get_samples_one_player(aoh, seq_len, "cuda:1").type(torch.LongTensor)
         if step < 80:
@@ -110,29 +104,31 @@ def run(
                     elif j == 4:
                         samples5.extend(temp)
 
-       # for i, actor in enumerate(actors):
-       #     actor.observe(game)
 
-       # to use BR trained with generalized belief change below, as well as in seachMoveGeneralizedBelief
-        #actors[0].observe(game)
+       # to use BR trained with generalized belief, change below, line 200, as well as line 126 in rlcc/sparta.cc
+        using_BR_w_gen_belief = True
+        if using_BR_w_gen_belief:
+            actors[0].observeGeneralizedBelief(game, aoh_for_c, seq_len.to("cpu"))
+        else:
+            actors[0].observe(game)
+            
         actors[0].observeGeneralizedBelief(game, aoh_for_c, seq_len.to("cpu"))
+        
         actors[1].observe(game)
-        #actor_sus.observe(game)
 
         for i, actor in enumerate(actors):
             print(f"---Actor {i} decide action---")
             action = actor.decide_action(game)
             if i == cur_player:
                 move = game.get_move(action)
-        #actor_sus.decide_action(game)
        
         player_each_rollout = np.random.choice([1,2,3,4,5,6], batchsize*num_batch).tolist()
 
-        if step < 80 and step > 40:
-            if cur_player == search_actor_idx:
-                move = actors[search_actor_idx].sparta_search(
-                    game, move, batchsize*num_batch,#num_search,
-                    threshold, cardCount, aoh_for_c, seq_len.to("cpu").to(torch.int), player_each_rollout, samples1, samples2, samples3, samples4, samples5)
+        #if step < 80 and step > 40:
+        if cur_player == search_actor_idx:
+            move = actors[search_actor_idx].sparta_search(
+                game, move, batchsize*num_batch,#num_search,
+                threshold, cardCount, aoh_for_c, seq_len.to("cpu").to(torch.int), player_each_rollout, samples1, samples2, samples3, samples4, samples5)
 
         print(f"Active Player {cur_player} pick action: {move.to_string()}")
         moves.append(move)
@@ -197,51 +193,35 @@ if __name__ == "__main__":
     sys.stdout = common_utils.Logger(logger_path)
 
     if "fc_v.weight" in torch.load(args.weight_file).keys():
-        # bp, config = utils.load_agent(args.weight_file, {"device": args.device, "vdn": False})
-         
-         #bp, config = load_legacy_agent(args.weight_file)
-         bp = load_sad_beliefmodule_model(args.weight_file, args.device)
-         #bp, _ = load_legacy_agent("models/sad/sad_2p_8.pthw")
-         random_partner = str(np.random.choice([1,8,9,10,11,12,13]))
-         bp_partner, _ = load_legacy_agent("models/sad/sad_2p_"+random_partner+".pthw")
-         bp_sus2, _ = load_legacy_agent("models/sad/sad_2p_2.pthw")
-         bp_sus3, _ = load_legacy_agent("models/sad/sad_2p_3.pthw")
-         bp_sus4, _ = load_legacy_agent("models/sad/sad_2p_4.pthw")
-         bp_sus5, _ = load_legacy_agent("models/sad/sad_2p_5.pthw")
-         bp_sus6, _ = load_legacy_agent("models/sad/sad_2p_6.pthw")
-         bp_sus7, _ = load_legacy_agent("models/sad/sad_2p_7.pthw")
+        #bp, config = utils.load_agent(args.weight_file, {"device": args.device, "vdn": False})
         
-        # bp = r2d2.R2D2Agent(
-        #     False, # vdn
-        #     3, # multi step
-        #     0.99, # gamma
-        #     0.9, # eta
-        #     args.device, # device
-        #     838, # feature size
-        #     512, # rnn hidden dim
-        #     21, # out dim
-        #     "lstm", # net
-        #     2, # num lstm layer
-        #     False, # boltzmann act
-        #     False,  # uniform priority
-        #     False, # off belief
-        # )
-        # utils.load_weight(bp.online_net, args.weight_file, args.device)
-        # assert not config["hide_action"]
-        # assert not config["boltzmann_act"]
+        # bp is the agent that will be using search, i.e. the best response agent
+        # to use BR trained with generalized belief, change below, line 109, as well as line 126 in rlcc/sparta.cc
+        using_BR_w_gen_belief = True
+        if using_BR_w_gen_belief:
+            bp = load_sad_beliefmodule_model(args.weight_file, args.device)
+        else:
+            bp, config = load_legacy_agent(args.weight_file)
+        
+        # bp_partner is the partner we engage in cross-play with
+        random_partner = str(np.random.choice([1,8,9,10,11,12,13]))
+        bp_partner, _ = load_legacy_agent("models/sad/sad_2p_"+random_partner+".pthw")
+        
+        # bp_sus actors are partners we will simulate rollouts with in search
+        bp_sus2, _ = load_legacy_agent("models/sad/sad_2p_2.pthw")
+        bp_sus3, _ = load_legacy_agent("models/sad/sad_2p_3.pthw")
+        bp_sus4, _ = load_legacy_agent("models/sad/sad_2p_4.pthw")
+        bp_sus5, _ = load_legacy_agent("models/sad/sad_2p_5.pthw")
+        bp_sus6, _ = load_legacy_agent("models/sad/sad_2p_6.pthw")
+        bp_sus7, _ = load_legacy_agent("models/sad/sad_2p_7.pthw")
+        
     else:
         bp = utils.load_supervised_agent(args.weight_file, args.device)
     bp.train(False)
     bp_partner.train(False)
-   
-    #bp_runners = [rela.BatchRunner(bp_partner, args.device, 1000, ["act"]),
-    #                rela.BatchRunner(bp, args.device, 1000, ["act"])]
 
     bp_runners = [rela.BatchRunner(bp, args.device, 1000, ["act"]),
                     rela.BatchRunner(bp_partner, args.device, 1000, ["act"])]
-
-   # bp_runner = rela.BatchRunner(bp, args.device, 2000, ["act"])
-   # bp_runner.start()
 
     seed = args.seed
     actors = []
@@ -251,7 +231,7 @@ if __name__ == "__main__":
         seed += 1
         actors.append(actor)
 
-    # has bp of search policy but id of partner
+    # has policy of search policy but id of partner
     bprunner_sus2 = rela.BatchRunner(bp_sus2, args.device, 1000, ["act"])
     actor_sus2 = hanalearn.SpartaActor(1, bprunner_sus2, seed-1)
     bprunner_sus3 = rela.BatchRunner(bp_sus3, args.device, 1000, ["act"])
@@ -265,7 +245,6 @@ if __name__ == "__main__":
     bprunner_sus7 = rela.BatchRunner(bp_sus7, args.device, 1000, ["act"])
     actor_sus7 = hanalearn.SpartaActor(1, bprunner_sus7, seed-1)
 
-   # actors[args.search_player].set_partners([actor_sus, actors[1]], bp)
     actors[args.search_player].set_partners([actors[0], actor_sus2, actor_sus3, actor_sus4, actor_sus5, actor_sus6, actor_sus7], bp)
 
     for bp_runner in bp_runners:
@@ -284,7 +263,6 @@ if __name__ == "__main__":
          args.num_search,
          args.threshold,
          args.num_thread,
-      #   actor_sus,
      )
     print("score: ", score)
     print("Curr avg: " + str((args.score_sum+score)/(args.num_runs+1)))

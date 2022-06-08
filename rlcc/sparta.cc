@@ -121,20 +121,15 @@ float searchMoveGeneralizedBelief(
     std::vector<int> newNotTerminated;
     for (auto i : notTerminated) {
       assert(!games[i].state().IsTerminal());
-//      for (auto& actor : allPlayers[i]) {
-    //    actor.observeBeforeAct(games[i], 0);
-//        if (asdf == 1) {
-//	  for (int j = 0; j < aohs[i].size(); ++j) {
-//	    std::cout << aohs[i][j].dim() << std::endl;
-//	    for (int k = 0; k < aohs[i][j].dim(); ++k) {
-//	      std::cout << aohs[i][j].size(k) << std::endl;
-//	    }
-//	  }
-//	}
-      aohs[i] = allPlayers[i][0].observeBeforeActGeneralizedBelief(games[i], 0, aohs[i], torch::zeros({1}));
-//      allPlayers[i][0].observeBeforeAct(games[i], 0);
+	    
+      // to use BR trained with generalized belief, change below, as well as lines 109 and 200 in pyhanabi/sparta.py
+      bool using_BR_with_gen_belief {true};
+      if (using_BR_with_gen_belief) {
+	      aohs[i] = allPlayers[i][0].observeBeforeActGeneralizedBelief(games[i], 0, aohs[i], torch::zeros({1}));
+      } else {
+	      allPlayers[i][0].observeBeforeAct(games[i], 0);
+      }
       allPlayers[i][1].observeBeforeAct(games[i], 0);
-//      }
     }
 
     for (auto i : notTerminated) {
